@@ -100,18 +100,22 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	// trim newline
 	text = text[:len(text)-1]
 
-	max := len(board.grid) - 1
-	pattern := fmt.Sprintf("^[0-%v] [0-%v]$", max, max)
-
 	if text == "exit" || text == "quit" {
 		return nil, errors.New("exit")
-	} else if match, _ := regexp.MatchString(pattern, text); !match {
+	}
+
+	if match, _ := regexp.MatchString("^\\d+ \\d+", text); !match {
 		return nil, errors.New("bad input")
 	}
 
 	coords := strings.Fields(text)
 	y, _ := strconv.Atoi(coords[0])
 	x, _ := strconv.Atoi(coords[1])
+
+	size := len(board.grid)
+	if x >= size || y >= size {
+		return nil, errors.New("out of bounds")
+	}
 
 	if board.grid[y][x] != "" {
 		return nil, errors.New("coord taken")
