@@ -13,25 +13,35 @@ import (
 	"time"
 )
 
-// Make a slice of slices to represent the game grid
-func MakeGrid(n int) [][]string {
-	grid := make([][]string, n)
-	for i := 0; i < n; i++ {
-		grid[i] = make([]string, n)
+type Board struct {
+	grid   [][]string
+	turns  int
+	checks [][][]int
+}
+
+// make a game board
+func MakeBoard(size int) *Board {
+	var board Board
+
+	board.grid = make([][]string, size)
+	for row := 0; row < size; row++ {
+		board.grid[row] = make([]string, size)
 	}
 
-	return grid
+	board.checks = MakeCheckCoords(size)
+
+	return &board
 }
 
 // Calculate groups of coordinates to eval for win checks
-func MakeCheckCoords(n int) [][][]int {
+func MakeCheckCoords(size int) [][][]int {
 	var coords [][][]int
 
 	// horizontal and vertical coords
-	for row := 0; row < n; row++ {
+	for row := 0; row < size; row++ {
 		var set_horizontal [][]int
 		var set_vertical [][]int
-		for col := 0; col < n; col++ {
+		for col := 0; col < size; col++ {
 			set_horizontal = append(set_horizontal, []int{row, col})
 			set_vertical = append(set_vertical, []int{col, row})
 		}
@@ -42,7 +52,7 @@ func MakeCheckCoords(n int) [][][]int {
 	row := 0
 	col := 0
 	var ltr_set [][]int
-	for row < n {
+	for row < size {
 		ltr_set = append(ltr_set, []int{row, col})
 		row++
 		col++
@@ -50,8 +60,8 @@ func MakeCheckCoords(n int) [][][]int {
 	coords = append(coords, ltr_set)
 
 	// rtl diag
-	row = n - 1
-	col = n - 1
+	row = size - 1
+	col = size - 1
 	var rtl_set [][]int
 	for row > -1 {
 		rtl_set = append(rtl_set, []int{row, col})
@@ -64,8 +74,8 @@ func MakeCheckCoords(n int) [][][]int {
 }
 
 // Print out the game grid
-func PrintGrid(grid [][]string) {
-	for _, row := range grid {
+func PrintBoard(board *Board) {
+	for _, row := range board.grid {
 		fmt.Print("[")
 		row_out := make([]string, len(row))
 		for i, c := range row {
@@ -84,7 +94,7 @@ func PrintResult(message string) {
 	fmt.Println("Result: " + message)
 }
 
-func GetInput(reader *bufio.Reader, grid [][]string) ([]int, error) {
+func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	text, _ := reader.ReadString('\n')
 	// trim newline
 	text = text[:len(text)-1]
@@ -99,18 +109,19 @@ func GetInput(reader *bufio.Reader, grid [][]string) ([]int, error) {
 	y, _ := strconv.Atoi(coords[0])
 	x, _ := strconv.Atoi(coords[1])
 
-	if grid[y][x] != "" {
+	if board.grid[y][x] != "" {
 		return nil, errors.New("coord taken")
 	}
 
 	return []int{y, x}, nil
 }
 
-func CpuPick(n int, grid [][]string, turns int, check_coords [][][]int) []int {
-	if turns == 1 && n%2 == 1 {
+func CpuPick(board *Board) []int {
+	size := len(board.grid)
+	if board.turns == 1 && size%2 == 1 {
 		// if first turn and odd sized grid...
-		center := n / 2
-		if grid[center][center] == "" {
+		center := size / 2
+		if board.grid[center][center] == "" {
 			// if center is open, take it
 			log.Println("Cpu Tactic: take center")
 			return []int{center, center}
@@ -120,14 +131,14 @@ func CpuPick(n int, grid [][]string, turns int, check_coords [][][]int) []int {
 			return []int{0, 0}
 		}
 	} else {
-		winner := MissingOne(check_coords, grid, "O")
+		winner := MissingOne(board, "O")
 		if winner != nil {
 			// winning move
 			log.Println("Cpu Tactic: winning move")
 			return []int{winner[0], winner[1]}
 		}
 
-		blocker := MissingOne(check_coords, grid, "X")
+		blocker := MissingOne(board, "X")
 		if blocker != nil {
 			// block opponent
 			log.Println("Cpu Tactic: blocker")
@@ -136,25 +147,26 @@ func CpuPick(n int, grid [][]string, turns int, check_coords [][][]int) []int {
 
 		// eh, just pick something random
 		log.Println("Cpu Tactic: random")
+		// TODO: make list of empty spaces and pick randomly from it?
 		for {
-			row := rand.Intn(n)
-			col := rand.Intn(n)
-			if grid[row][col] == "" {
+			row := rand.Intn(size)
+			col := rand.Intn(size)
+			if board.grid[row][col] == "" {
 				return []int{row, col}
 			}
 		}
 	}
 }
 
-func EvalGrid(check_coords [][][]int, grid [][]string, sigil string) bool {
-	need := len(grid)
+func EvalBoard(board *Board, sigil string) bool {
+	need := len(board.grid)
 
-	for _, set := range check_coords {
+	for _, set := range board.checks {
 		found := 0
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if grid[row][col] == sigil {
+			if board.grid[row][col] == sigil {
 				found++
 			} else {
 				break
@@ -169,20 +181,20 @@ func EvalGrid(check_coords [][][]int, grid [][]string, sigil string) bool {
 }
 
 // find first coords where sigil needs just one more to win
-func MissingOne(check_coords [][][]int, grid [][]string, sigil string) []int {
-	for _, set := range check_coords {
+func MissingOne(board *Board, sigil string) []int {
+	for _, set := range board.checks {
 		var last_empty []int
 		found := 0
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if grid[row][col] == sigil {
+			if board.grid[row][col] == sigil {
 				found++
-			} else if grid[row][col] == "" {
+			} else if board.grid[row][col] == "" {
 				last_empty = []int{row, col}
 			}
 		}
-		if found == len(grid)-1 && len(last_empty) > 0 {
+		if found == len(board.grid)-1 && len(last_empty) > 0 {
 			return last_empty
 		}
 	}
@@ -191,20 +203,16 @@ func MissingOne(check_coords [][][]int, grid [][]string, sigil string) []int {
 }
 
 func main() {
-	const N = 3
+	board := MakeBoard(3)
 
-	grid := MakeGrid(N)
-	check_coords := MakeCheckCoords(N)
-
-	PrintGrid(grid)
+	PrintBoard(board)
 
 	rand.Seed(time.Now().UnixNano())
 	reader := bufio.NewReader(os.Stdin)
-	turns := 0
 	for {
 		var player string
 		var sigil string
-		if turns%2 == 0 {
+		if board.turns%2 == 0 {
 			player = "1"
 			sigil = "X"
 		} else {
@@ -215,16 +223,16 @@ func main() {
 		var coords []int
 		var error error
 		if player == "2" {
-			coords = CpuPick(N, grid, turns, check_coords)
+			coords = CpuPick(board)
 			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
 		} else {
 			fmt.Print("Player " + player + "> ")
-			coords, error = GetInput(reader, grid)
+			coords, error = GetInput(reader, board)
 		}
 
 		if error == nil {
-			grid[coords[0]][coords[1]] = sigil
-			turns += 1
+			board.grid[coords[0]][coords[1]] = sigil
+			board.turns += 1
 		} else if error.Error() == "exit" {
 			fmt.Println("Player " + player + " is a quitter, cya")
 			break
@@ -233,12 +241,12 @@ func main() {
 			continue
 		}
 
-		PrintGrid(grid)
+		PrintBoard(board)
 
-		if EvalGrid(check_coords, grid, sigil) {
+		if EvalBoard(board, sigil) {
 			PrintResult("Player " + player + " wins!")
 			break
-		} else if turns >= 9 {
+		} else if board.turns >= 9 {
 			PrintResult("cat's game")
 			break
 		}
