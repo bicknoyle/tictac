@@ -48,27 +48,27 @@ func MakeCheckCoords(size int) [][][]int {
 		coords = append(coords, set_horizontal, set_vertical)
 	}
 
-	// ltr diag
+	// top to bottom diag
 	row := 0
 	col := 0
-	var ltr_set [][]int
+	diag := [][]int{}
 	for row < size {
-		ltr_set = append(ltr_set, []int{row, col})
+		diag = append(diag, []int{row, col})
 		row++
 		col++
 	}
-	coords = append(coords, ltr_set)
+	coords = append(coords, diag)
 
-	// rtl diag
+	// bottom to top diag
 	row = size - 1
-	col = size - 1
-	var rtl_set [][]int
+	col = 0
+	diag = [][]int{}
 	for row > -1 {
-		rtl_set = append(rtl_set, []int{row, col})
+		diag = append(diag, []int{row, col})
 		row--
-		col--
+		col++
 	}
-	coords = append(coords, rtl_set)
+	coords = append(coords, diag)
 
 	return coords
 }
