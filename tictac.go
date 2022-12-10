@@ -124,6 +124,20 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	return []int{y, x}, nil
 }
 
+func GetEmpty(board *Board) [][]int {
+	var empty [][]int
+	size := len(board.grid)
+	for row := 0; row < size; row++ {
+		for col := 0; col < size; col++ {
+			if board.grid[row][col] == "" {
+				empty = append(empty, []int{row, col})
+			}
+		}
+	}
+
+	return empty
+}
+
 func CpuPick(board *Board) []int {
 	size := len(board.grid)
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
@@ -158,16 +172,11 @@ func CpuPick(board *Board) []int {
 		return []int{blocker[0], blocker[1]}
 	}
 
-	// eh, just pick something random
+	// random empty space
 	logger.Println("random")
-	// TODO: make list of empty spaces and pick randomly from it?
-	for {
-		row := rand.Intn(size)
-		col := rand.Intn(size)
-		if board.grid[row][col] == "" {
-			return []int{row, col}
-		}
-	}
+	empty := GetEmpty(board)
+
+	return empty[rand.Intn(len(empty)-1)]
 }
 
 func EvalBoard(board *Board, sigil string) bool {
