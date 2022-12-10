@@ -100,10 +100,12 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	// trim newline
 	text = text[:len(text)-1]
 
+	max := len(board.grid) - 1
+	pattern := fmt.Sprintf("^[0-%v] [0-%v]$", max, max)
+
 	if text == "exit" || text == "quit" {
 		return nil, errors.New("exit")
-	} else if match, _ := regexp.MatchString("^[0-2] [0-2]$", text); !match {
-		// TODO: this regex only works on a 3x3 grid
+	} else if match, _ := regexp.MatchString(pattern, text); !match {
 		return nil, errors.New("bad input")
 	}
 
@@ -210,7 +212,10 @@ func MissingOne(board *Board, sigil string) []int {
 }
 
 func main() {
-	board := MakeBoard(3)
+	const SIZE = 3
+	const MAX_TURNS = SIZE * SIZE
+
+	board := MakeBoard(SIZE)
 
 	PrintBoard(board)
 
@@ -253,7 +258,7 @@ func main() {
 		if EvalBoard(board, sigil) {
 			PrintResult("Player " + player + " wins!")
 			break
-		} else if board.turns >= 9 {
+		} else if board.turns >= MAX_TURNS {
 			PrintResult("cat's game")
 			break
 		}
