@@ -77,15 +77,16 @@ func MakeCheckCoords(size int) [][][]int {
 func PrintBoard(board *Board) {
 	for _, row := range board.grid {
 		fmt.Print("[")
-		row_out := make([]string, len(row))
 		for i, c := range row {
 			if c == "" {
-				row_out[i] = "_"
+				fmt.Print("_")
 			} else {
-				row_out[i] = c
+				fmt.Print(c)
+			}
+			if i < len(board.grid)-1 {
+				fmt.Print("][")
 			}
 		}
-		fmt.Print(strings.Join(row_out, "]["))
 		fmt.Println("]")
 	}
 }
@@ -102,6 +103,7 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	if text == "exit" || text == "quit" {
 		return nil, errors.New("exit")
 	} else if match, _ := regexp.MatchString("^[0-2] [0-2]$", text); !match {
+		// TODO: this regex only works on a 3x3 grid
 		return nil, errors.New("bad input")
 	}
 
@@ -118,42 +120,46 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 
 func CpuPick(board *Board) []int {
 	size := len(board.grid)
+	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
+
 	if board.turns == 1 && size%2 == 1 {
 		// if first turn and odd sized grid...
 		center := size / 2
 		if board.grid[center][center] == "" {
 			// if center is open, take it
-			log.Println("Cpu Tactic: take center")
+			logger.Println("take center")
 			return []int{center, center}
 		} else {
 			// take a corner
-			log.Println("Cpu Tactic: take corner")
+			logger.Println("take corner")
 			return []int{0, 0}
 		}
-	} else {
-		winner := MissingOne(board, "O")
-		if winner != nil {
-			// winning move
-			log.Println("Cpu Tactic: winning move")
-			return []int{winner[0], winner[1]}
-		}
+	}
 
-		blocker := MissingOne(board, "X")
-		if blocker != nil {
-			// block opponent
-			log.Println("Cpu Tactic: blocker")
-			return []int{blocker[0], blocker[1]}
-		}
+	// TODO: no need to see if MissingOne until sigil has been played X times
 
-		// eh, just pick something random
-		log.Println("Cpu Tactic: random")
-		// TODO: make list of empty spaces and pick randomly from it?
-		for {
-			row := rand.Intn(size)
-			col := rand.Intn(size)
-			if board.grid[row][col] == "" {
-				return []int{row, col}
-			}
+	winner := MissingOne(board, "O")
+	if winner != nil {
+		// winning move
+		logger.Println("winning move")
+		return []int{winner[0], winner[1]}
+	}
+
+	blocker := MissingOne(board, "X")
+	if blocker != nil {
+		// block opponent
+		logger.Println("blocker")
+		return []int{blocker[0], blocker[1]}
+	}
+
+	// eh, just pick something random
+	logger.Println("random")
+	// TODO: make list of empty spaces and pick randomly from it?
+	for {
+		row := rand.Intn(size)
+		col := rand.Intn(size)
+		if board.grid[row][col] == "" {
+			return []int{row, col}
 		}
 	}
 }
@@ -181,6 +187,7 @@ func EvalBoard(board *Board, sigil string) bool {
 }
 
 // find first coords where sigil needs just one more to win
+// TODO: MissingOne can return as soon as it has seen board.turns non-blanks
 func MissingOne(board *Board, sigil string) []int {
 	for _, set := range board.checks {
 		var last_empty []int
