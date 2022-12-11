@@ -138,10 +138,12 @@ func GetEmpty(board *Board) [][]int {
 	return empty
 }
 
+// Pick play coordinates for the CPU player based on a variety of tactics
 func CpuPick(board *Board) []int {
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
 	size := len(board.grid)
 
+	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.turns == 1 {
 		corners := [][]int{{0, 0}, {0, size - 1}, {size - 1, 0}, {size - 1, size - 1}}
 		var cornerTaken bool
@@ -152,38 +154,47 @@ func CpuPick(board *Board) []int {
 			}
 		}
 		if !cornerTaken {
-			// take a corner
 			logger.Println("take corner")
 			corner := corners[rand.Intn(len(corners)-1)]
 			return []int{corner[0], corner[1]}
 		} else {
-			// take center
-			center := size / 2
 			logger.Println("take center")
+			center := size / 2
 			return []int{center, center}
 		}
 	}
 
-	// TODO: no need to see if MissingOne until sigil has been played X times
-
-	winner := MissingOne(board, "O")
-	if winner != nil {
-		// winning move
+	// Tactic 2: if CPU needs one to win, take that spot
+	oCounts := MissingCounts(board, "O")
+	if len(oCounts[1]) > 0 {
 		logger.Println("winning move")
-		return []int{winner[0], winner[1]}
+		return []int{oCounts[1][0][0][0], oCounts[1][0][0][1]}
 	}
 
-	blocker := MissingOne(board, "X")
-	if blocker != nil {
-		// block opponent
+	// Tactic 2: if player needs one to win, block that spot
+	xCounts := MissingCounts(board, "X")
+	if len(xCounts[1]) > 0 {
 		logger.Println("blocker")
-		return []int{blocker[0], blocker[1]}
+		return []int{xCounts[1][0][0][0], xCounts[1][0][0][1]}
 	}
 
-	// random empty space
+	// Tactic 3: take a spot that will put at least 2 in a row
+	if len(oCounts[2]) > 0 {
+		logger.Println("near win")
+		return []int{oCounts[2][0][0][0], oCounts[2][0][0][1]}
+	}
+
+	// Tactic 4: take a spot in a winnable lane
+	// TODO: is this situation possible on 3x3 grid? Other tactics will usually
+	// take precendence
+	if len(oCounts[3]) > 0 {
+		logger.Println("winnable lane")
+		return []int{oCounts[3][0][0][0], oCounts[3][0][0][1]}
+	}
+
+	// Last Tactic: random empty space
 	logger.Println("random")
 	empty := GetEmpty(board)
-
 	return empty[rand.Intn(len(empty)-1)]
 }
 
@@ -209,27 +220,27 @@ func EvalBoard(board *Board, sigil string) bool {
 	return false
 }
 
-// find first coords where sigil needs just one more to win
-// TODO: MissingOne can return as soon as it has seen board.turns non-blanks
-func MissingOne(board *Board, sigil string) []int {
+func MissingCounts(board *Board, sigil string) [][][][]int {
+	size := len(board.grid)
+	counts := make([][][][]int, size+1)
+OUTER:
 	for _, set := range board.checks {
-		var last_empty []int
-		found := 0
+		var empties [][]int
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if board.grid[row][col] == sigil {
-				found++
-			} else if board.grid[row][col] == "" {
-				last_empty = []int{row, col}
+			if board.grid[row][col] == "" {
+				empties = append(empties, []int{row, col})
+			} else if board.grid[row][col] != sigil {
+				continue OUTER
 			}
 		}
-		if found == len(board.grid)-1 && len(last_empty) > 0 {
-			return last_empty
+		if len(empties) > 0 {
+			counts[len(empties)] = append(counts[len(empties)], empties)
 		}
 	}
 
-	return nil
+	return counts
 }
 
 func main() {
