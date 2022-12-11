@@ -139,20 +139,20 @@ func GetEmpty(board *Board) [][]int {
 }
 
 func CpuPick(board *Board) []int {
-	size := len(board.grid)
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
+	size := len(board.grid)
 
-	if board.turns == 1 && size%2 == 1 {
-		// if first turn and odd sized grid...
-		center := size / 2
-		if board.grid[center][center] == "" {
-			// if center is open, take it
-			logger.Println("take center")
-			return []int{center, center}
-		} else {
+	if board.turns == 1 {
+		if board.grid[0][0] == "" && board.grid[0][size-1] == "" &&
+			board.grid[size-1][0] == "" && board.grid[size-1][size-1] == "" {
 			// take a corner
 			logger.Println("take corner")
 			return []int{0, 0}
+		} else {
+			// take center
+			center := size / 2
+			logger.Println("take center")
+			return []int{center, center}
 		}
 	}
 
@@ -225,6 +225,7 @@ func MissingOne(board *Board, sigil string) []int {
 }
 
 func main() {
+	// TODO: assume 3x3 grid
 	const SIZE = 3
 	const MAX_TURNS = SIZE * SIZE
 
