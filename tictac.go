@@ -145,18 +145,14 @@ func CpuPick(board *Board) []int {
 
 	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.turns == 1 {
-		corners := [][]int{{0, 0}, {0, size - 1}, {size - 1, 0}, {size - 1, size - 1}}
-		var cornerTaken bool
-		for _, corner := range corners {
-			if board.grid[corner[0]][corner[1]] != "" {
-				cornerTaken = true
-				break
-			}
-		}
-		if !cornerTaken {
+		if board.grid[0][0] == "" && board.grid[0][size-1] == "" &&
+			board.grid[size-1][0] == "" && board.grid[size-1][size-1] == "" {
 			logger.Println("take corner")
-			corner := corners[rand.Intn(len(corners)-1)]
-			return []int{corner[0], corner[1]}
+			// pick a corner neighboring opp's play. This only works on a 3x3 board
+			if board.grid[0][1] != "" || board.grid[1][0] != "" {
+				return []int{0, 0}
+			}
+			return []int{size - 1, size - 1}
 		} else {
 			logger.Println("take center")
 			center := size / 2
