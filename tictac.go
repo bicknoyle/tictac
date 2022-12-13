@@ -152,6 +152,15 @@ func CpuPick(board *Board, sigil string) []int {
 	logger.Println("thinking/sleeping...")
 	time.Sleep(time.Second / 2)
 
+	// Tactic 0: Take a random corner
+	if board.turns == 0 {
+		logger.Println("random corner")
+		starts := [][]int{{0, 0}, {0, size - 1}, {size - 1, 0}, {size - 1, size - 1}, {size / 2, size / 2}}
+		coords := starts[rand.Intn(len(starts)-1)]
+
+		return []int{coords[0], coords[1]}
+	}
+
 	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.turns == 1 {
 		if board.grid[0][0] == "" && board.grid[0][size-1] == "" &&
@@ -200,6 +209,9 @@ func CpuPick(board *Board, sigil string) []int {
 	// Last Tactic: random empty space
 	logger.Println("random")
 	empty := GetEmpty(board)
+	if len(empty) == 1 {
+		return empty[0]
+	}
 	return empty[rand.Intn(len(empty)-1)]
 }
 
@@ -272,8 +284,13 @@ func main() {
 
 		var coords []int
 		var error error
-		if player == "2" {
-			coords = CpuPick(board, "O")
+		// TODO: make this an option
+		playerCpu := false
+		if player == "1" && playerCpu {
+			coords = CpuPick(board, sigil)
+			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
+		} else if player == "2" {
+			coords = CpuPick(board, sigil)
 			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
 		} else {
 			fmt.Print("Player " + player + "> ")
