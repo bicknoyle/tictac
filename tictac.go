@@ -139,9 +139,18 @@ func GetEmpty(board *Board) [][]int {
 }
 
 // Pick play coordinates for the CPU player based on a variety of tactics
-func CpuPick(board *Board) []int {
+func CpuPick(board *Board, sigil string) []int {
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
 	size := len(board.grid)
+	var opSigil string
+	if sigil == "X" {
+		opSigil = "O"
+	} else {
+		opSigil = "X"
+	}
+
+	logger.Println("thinking/sleeping...")
+	time.Sleep(time.Second / 2)
 
 	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.turns == 1 {
@@ -161,14 +170,14 @@ func CpuPick(board *Board) []int {
 	}
 
 	// Tactic 2: if CPU needs one to win, take that spot
-	oCounts := MissingCounts(board, "O")
+	oCounts := MissingCounts(board, sigil)
 	if len(oCounts[1]) > 0 {
 		logger.Println("winning move")
 		return []int{oCounts[1][0][0][0], oCounts[1][0][0][1]}
 	}
 
 	// Tactic 2: if player needs one to win, block that spot
-	xCounts := MissingCounts(board, "X")
+	xCounts := MissingCounts(board, opSigil)
 	if len(xCounts[1]) > 0 {
 		logger.Println("blocker")
 		return []int{xCounts[1][0][0][0], xCounts[1][0][0][1]}
@@ -264,7 +273,7 @@ func main() {
 		var coords []int
 		var error error
 		if player == "2" {
-			coords = CpuPick(board)
+			coords = CpuPick(board, "O")
 			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
 		} else {
 			fmt.Print("Player " + player + "> ")
