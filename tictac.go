@@ -19,6 +19,12 @@ type Board struct {
 	checks [][][]int
 }
 
+type Player struct {
+	id    string
+	sigil string
+	cpu   bool
+}
+
 // make a game board
 func MakeBoard(size int) *Board {
 	var board Board
@@ -149,9 +155,6 @@ func CpuPick(board *Board, sigil string) []int {
 		opSigil = "X"
 	}
 
-	logger.Println("thinking/sleeping...")
-	time.Sleep(time.Second / 2)
-
 	// Tactic 0: Take a random corner
 	if board.turns == 0 {
 		logger.Println("random corner")
@@ -193,9 +196,11 @@ func CpuPick(board *Board, sigil string) []int {
 	}
 
 	// Tactic 3: take a spot that will put at least 2 in a row
+	// TODO: if there are 2 turns and center is not take, take center
 	if len(oCounts[2]) > 0 {
 		logger.Println("near win")
-		return []int{oCounts[2][0][0][0], oCounts[2][0][0][1]}
+		row, col := RandomPair(oCounts[2])
+		return []int{row, col}
 	}
 
 	// Tactic 4: take a spot in a winnable lane
@@ -213,6 +218,24 @@ func CpuPick(board *Board, sigil string) []int {
 		return empty[0]
 	}
 	return empty[rand.Intn(len(empty)-1)]
+}
+
+func RandomPair(lanes [][][]int) (int, int) {
+	var lane [][]int
+	if len(lanes) == 1 {
+		lane = lanes[0]
+	} else {
+		lane = lanes[rand.Intn(len(lanes)-1)]
+	}
+
+	var pair []int
+	if len(lane) == 2 {
+		pair = lane[0]
+	} else {
+		pair = lane[rand.Intn(len(lane)-1)]
+	}
+
+	return pair[0], pair[1]
 }
 
 func EvalBoard(board *Board, sigil string) bool {
@@ -265,57 +288,88 @@ func main() {
 	const SIZE = 3
 	const MAX_TURNS = SIZE * SIZE
 
-	board := MakeBoard(SIZE)
-
-	PrintBoard(board)
-
 	rand.Seed(time.Now().UnixNano())
 	reader := bufio.NewReader(os.Stdin)
+
+	firstPlayer := Player{
+		id:    "1",
+		sigil: "X",
+		cpu:   false, // TODO: make configurable
+	}
+
+	secondPlayer := Player{
+		id:    "2",
+		sigil: "O",
+		cpu:   true,
+	}
+
+	// TODO: associate with a player
+	var wins int
+	var draws int
+
+GAMELOOP:
 	for {
-		var player string
-		var sigil string
-		if board.turns%2 == 0 {
-			player = "1"
-			sigil = "X"
-		} else {
-			player = "2"
-			sigil = "O"
-		}
+		board := MakeBoard(SIZE)
 
-		var coords []int
-		var error error
-		// TODO: make this an option
-		playerCpu := false
-		if player == "1" && playerCpu {
-			coords = CpuPick(board, sigil)
-			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
-		} else if player == "2" {
-			coords = CpuPick(board, sigil)
-			fmt.Printf("Player %v picked %v %v\n", player, coords[0], coords[1])
-		} else {
-			fmt.Print("Player " + player + "> ")
-			coords, error = GetInput(reader, board)
-		}
-
-		if error == nil {
-			board.grid[coords[0]][coords[1]] = sigil
-			board.turns += 1
-		} else if error.Error() == "exit" {
-			fmt.Println("Player " + player + " is a quitter, cya")
-			break
-		} else {
-			fmt.Println(error)
-			continue
-		}
-
+		fmt.Printf("New game, Player %v goes first...\n", firstPlayer.id)
 		PrintBoard(board)
 
-		if EvalBoard(board, sigil) {
-			PrintResult("Player " + player + " wins!")
-			break
-		} else if board.turns >= MAX_TURNS {
-			PrintResult("cat's game")
-			break
+		for {
+			var currentPlayer Player
+			if board.turns%2 == 0 {
+				currentPlayer = firstPlayer
+			} else {
+				currentPlayer = secondPlayer
+			}
+
+			var coords []int
+			var error error
+			if currentPlayer.cpu {
+				coords = CpuPick(board, currentPlayer.sigil)
+				fmt.Printf("Player %v picked %v %v\n", currentPlayer.id, coords[0], coords[1])
+			} else {
+				fmt.Print("Player " + currentPlayer.id + "> ")
+				coords, error = GetInput(reader, board)
+			}
+
+			if error == nil {
+				board.grid[coords[0]][coords[1]] = currentPlayer.sigil
+				board.turns += 1
+			} else if error.Error() == "exit" {
+				fmt.Println("Player " + currentPlayer.id + " is a quitter, cya")
+				break GAMELOOP
+			} else {
+				fmt.Println(error)
+				continue
+			}
+
+			PrintBoard(board)
+
+			if EvalBoard(board, currentPlayer.sigil) {
+				wins++
+				PrintResult("Player " + currentPlayer.id + " wins!")
+				break
+			} else if board.turns >= MAX_TURNS {
+				draws++
+				PrintResult("cat's game")
+				break
+			}
 		}
+
+		tmpPlayer := firstPlayer
+		firstPlayer = secondPlayer
+		secondPlayer = tmpPlayer
+
+		fmt.Printf("wins: %v, draws: %v\n", wins, draws)
+
+		if wins > 0 {
+			fmt.Println("Whoa how did you win?")
+			break GAMELOOP
+		} else if draws == 50 {
+			fmt.Println("I've seen enough...")
+			break GAMELOOP
+		}
+
+		fmt.Print("Starting a new game...\n\n")
 	}
 }
