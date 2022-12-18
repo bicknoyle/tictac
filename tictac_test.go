@@ -63,6 +63,15 @@ func TestBoardString(t *testing.T) {
 	if display != want {
 		t.Fatalf("Board.String() = \n%v\nwant = \n%v", display, want)
 	}
+
+	board.Set(0, 0, "X")
+
+	display = board.String()
+	want = "[X][_][_]\n[_][_][_]\n[_][_][_]\n"
+
+	if display != want {
+		t.Fatalf("Board.String() = \n%v\nwant = \n%v", display, want)
+	}
 }
 
 func TestPlayerName(t *testing.T) {

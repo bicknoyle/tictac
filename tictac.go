@@ -19,6 +19,19 @@ type Board struct {
 	Checks [][][]int
 }
 
+func (board *Board) Set(row int, col int, sigil string) {
+	board.Grid[row][col] = sigil
+}
+
+func (board *Board) Get(row int, col int) (string, error) {
+	size := len(board.Grid)
+	if row >= size || col >= size {
+		return "", errors.New("out of bounds")
+	}
+
+	return board.Grid[row][col], nil
+}
+
 // stringify the current board state
 func (board *Board) String() string {
 	result := ""
@@ -131,19 +144,18 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	}
 
 	coords := strings.Fields(text)
-	y, _ := strconv.Atoi(coords[0])
-	x, _ := strconv.Atoi(coords[1])
+	row, _ := strconv.Atoi(coords[0])
+	col, _ := strconv.Atoi(coords[1])
 
-	size := len(board.Grid)
-	if x >= size || y >= size {
-		return nil, errors.New("out of bounds")
-	}
+	sigil, error := board.Get(row, col)
 
-	if board.Grid[y][x] != "" {
+	if error != nil {
+		return nil, error
+	} else if sigil != "" {
 		return nil, errors.New("coord taken")
 	}
 
-	return []int{y, x}, nil
+	return []int{row, col}, nil
 }
 
 func GetEmpty(board *Board) [][]int {
@@ -151,7 +163,8 @@ func GetEmpty(board *Board) [][]int {
 	size := len(board.Grid)
 	for row := 0; row < size; row++ {
 		for col := 0; col < size; col++ {
-			if board.Grid[row][col] == "" {
+			sigil, _ := board.Get(row, col)
+			if sigil == "" {
 				empty = append(empty, []int{row, col})
 			}
 		}
@@ -182,10 +195,12 @@ func CpuPick(board *Board, sigil string) []int {
 
 	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.Turns == 1 {
+		// TODO: use Get or make a GetAll func
 		if board.Grid[0][0] == "" && board.Grid[0][size-1] == "" &&
 			board.Grid[size-1][0] == "" && board.Grid[size-1][size-1] == "" {
 			logger.Println("take corner")
 			// pick a corner neighboring opp's play. This only works on a 3x3 board
+			// TODO: use Get
 			if board.Grid[0][1] != "" || board.Grid[1][0] != "" {
 				return []int{0, 0}
 			}
@@ -262,7 +277,8 @@ func EvalBoard(board *Board, sigil string) bool {
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if board.Grid[row][col] == sigil {
+			foundSigil, _ := board.Get(row, col)
+			if foundSigil == sigil {
 				found++
 			} else {
 				break
@@ -285,9 +301,10 @@ OUTER:
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if board.Grid[row][col] == "" {
+			foundSigil, _ := board.Get(row, col)
+			if foundSigil == "" {
 				empties = append(empties, []int{row, col})
-			} else if board.Grid[row][col] != sigil {
+			} else if foundSigil != sigil {
 				continue OUTER
 			}
 		}
@@ -346,7 +363,7 @@ GAMELOOP:
 			}
 
 			if error == nil {
-				board.Grid[coords[0]][coords[1]] = currentPlayer.Sigil
+				board.Set(coords[0], coords[1], currentPlayer.Sigil)
 				board.Turns += 1
 			} else if error.Error() == "exit" {
 				fmt.Printf("%v is a quitter, cya\n", currentPlayer.Name())
