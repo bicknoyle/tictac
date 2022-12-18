@@ -7,7 +7,7 @@ import (
 func TestMissingCounts(t *testing.T) {
 	board := MakeBoard(3)
 
-	want := len(board.checks)
+	want := len(board.Checks)
 	counts := MissingCounts(board, "O")
 	have := len(counts[3])
 
@@ -15,7 +15,7 @@ func TestMissingCounts(t *testing.T) {
 		t.Fatalf("MissingCounts(), all checks have count == %v, have: %v", want, have)
 	}
 
-	board.grid = [][]string{
+	board.Grid = [][]string{
 		{"X", "", ""},
 		{"", "", ""},
 		{"", "", ""},
@@ -31,7 +31,7 @@ func TestMissingCounts(t *testing.T) {
 		t.Fatalf("MissingCounts(), exepected 5 sets where 3 chars are missing")
 	}
 
-	board.grid = [][]string{
+	board.Grid = [][]string{
 		{"X", "", ""},
 		{"", "O", ""},
 		{"", "", ""},
@@ -56,8 +56,8 @@ func TestMissingCounts(t *testing.T) {
 
 func TestPlayerName(t *testing.T) {
 	player := Player{
-		id:    "1",
-		sigil: "X",
+		Id:    "1",
+		Sigil: "X",
 	}
 
 	name := player.Name()
@@ -68,9 +68,9 @@ func TestPlayerName(t *testing.T) {
 	}
 
 	player = Player{
-		id:    "2",
-		sigil: "O",
-		cpu:   true,
+		Id:    "2",
+		Sigil: "O",
+		Cpu:   true,
 	}
 
 	name = player.Name()

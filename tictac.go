@@ -14,21 +14,21 @@ import (
 )
 
 type Board struct {
-	grid   [][]string
-	turns  int
-	checks [][][]int
+	Grid   [][]string
+	Turns  int
+	Checks [][][]int
 }
 
 type Player struct {
-	id    string
-	sigil string
-	cpu   bool
+	Id    string
+	Sigil string
+	Cpu   bool
 }
 
 func (player *Player) Name() string {
-	name := "Player " + player.id
+	name := "Player " + player.Id
 
-	if player.cpu {
+	if player.Cpu {
 		name += " (cpu)"
 	}
 
@@ -39,12 +39,12 @@ func (player *Player) Name() string {
 func MakeBoard(size int) *Board {
 	var board Board
 
-	board.grid = make([][]string, size)
+	board.Grid = make([][]string, size)
 	for row := 0; row < size; row++ {
-		board.grid[row] = make([]string, size)
+		board.Grid[row] = make([]string, size)
 	}
 
-	board.checks = MakeCheckCoords(size)
+	board.Checks = MakeCheckCoords(size)
 
 	return &board
 }
@@ -91,7 +91,7 @@ func MakeCheckCoords(size int) [][][]int {
 
 // Print out the game grid
 func PrintBoard(board *Board) {
-	for _, row := range board.grid {
+	for _, row := range board.Grid {
 		fmt.Print("[")
 		for i, c := range row {
 			if c == "" {
@@ -99,7 +99,7 @@ func PrintBoard(board *Board) {
 			} else {
 				fmt.Print(c)
 			}
-			if i < len(board.grid)-1 {
+			if i < len(board.Grid)-1 {
 				fmt.Print("][")
 			}
 		}
@@ -128,12 +128,12 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	y, _ := strconv.Atoi(coords[0])
 	x, _ := strconv.Atoi(coords[1])
 
-	size := len(board.grid)
+	size := len(board.Grid)
 	if x >= size || y >= size {
 		return nil, errors.New("out of bounds")
 	}
 
-	if board.grid[y][x] != "" {
+	if board.Grid[y][x] != "" {
 		return nil, errors.New("coord taken")
 	}
 
@@ -142,10 +142,10 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 
 func GetEmpty(board *Board) [][]int {
 	var empty [][]int
-	size := len(board.grid)
+	size := len(board.Grid)
 	for row := 0; row < size; row++ {
 		for col := 0; col < size; col++ {
-			if board.grid[row][col] == "" {
+			if board.Grid[row][col] == "" {
 				empty = append(empty, []int{row, col})
 			}
 		}
@@ -157,7 +157,7 @@ func GetEmpty(board *Board) [][]int {
 // Pick play coordinates for the CPU player based on a variety of tactics
 func CpuPick(board *Board, sigil string) []int {
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
-	size := len(board.grid)
+	size := len(board.Grid)
 	var opSigil string
 	if sigil == "X" {
 		opSigil = "O"
@@ -166,7 +166,7 @@ func CpuPick(board *Board, sigil string) []int {
 	}
 
 	// Tactic 0: Take a random corner
-	if board.turns == 0 {
+	if board.Turns == 0 {
 		logger.Println("random corner")
 		starts := [][]int{{0, 0}, {0, size - 1}, {size - 1, 0}, {size - 1, size - 1}, {size / 2, size / 2}}
 		coords := starts[rand.Intn(len(starts)-1)]
@@ -175,12 +175,12 @@ func CpuPick(board *Board, sigil string) []int {
 	}
 
 	// Tactic 1: Take a corner on first move if player didn't, else take center
-	if board.turns == 1 {
-		if board.grid[0][0] == "" && board.grid[0][size-1] == "" &&
-			board.grid[size-1][0] == "" && board.grid[size-1][size-1] == "" {
+	if board.Turns == 1 {
+		if board.Grid[0][0] == "" && board.Grid[0][size-1] == "" &&
+			board.Grid[size-1][0] == "" && board.Grid[size-1][size-1] == "" {
 			logger.Println("take corner")
 			// pick a corner neighboring opp's play. This only works on a 3x3 board
-			if board.grid[0][1] != "" || board.grid[1][0] != "" {
+			if board.Grid[0][1] != "" || board.Grid[1][0] != "" {
 				return []int{0, 0}
 			}
 			return []int{size - 1, size - 1}
@@ -249,14 +249,14 @@ func RandomPair(lanes [][][]int) (int, int) {
 }
 
 func EvalBoard(board *Board, sigil string) bool {
-	need := len(board.grid)
+	need := len(board.Grid)
 
-	for _, set := range board.checks {
+	for _, set := range board.Checks {
 		found := 0
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if board.grid[row][col] == sigil {
+			if board.Grid[row][col] == sigil {
 				found++
 			} else {
 				break
@@ -271,17 +271,17 @@ func EvalBoard(board *Board, sigil string) bool {
 }
 
 func MissingCounts(board *Board, sigil string) [][][][]int {
-	size := len(board.grid)
+	size := len(board.Grid)
 	counts := make([][][][]int, size+1)
 OUTER:
-	for _, set := range board.checks {
+	for _, set := range board.Checks {
 		var empties [][]int
 		for _, pair := range set {
 			row := pair[0]
 			col := pair[1]
-			if board.grid[row][col] == "" {
+			if board.Grid[row][col] == "" {
 				empties = append(empties, []int{row, col})
-			} else if board.grid[row][col] != sigil {
+			} else if board.Grid[row][col] != sigil {
 				continue OUTER
 			}
 		}
@@ -302,15 +302,15 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	firstPlayer := Player{
-		id:    "1",
-		sigil: "X",
-		cpu:   false, // TODO: make configurable
+		Id:    "1",
+		Sigil: "X",
+		Cpu:   false, // TODO: make configurable
 	}
 
 	secondPlayer := Player{
-		id:    "2",
-		sigil: "O",
-		cpu:   true,
+		Id:    "2",
+		Sigil: "O",
+		Cpu:   true,
 	}
 
 	// TODO: associate with a player
@@ -326,7 +326,7 @@ GAMELOOP:
 
 		for {
 			var currentPlayer Player
-			if board.turns%2 == 0 {
+			if board.Turns%2 == 0 {
 				currentPlayer = firstPlayer
 			} else {
 				currentPlayer = secondPlayer
@@ -334,8 +334,8 @@ GAMELOOP:
 
 			var coords []int
 			var error error
-			if currentPlayer.cpu {
-				coords = CpuPick(board, currentPlayer.sigil)
+			if currentPlayer.Cpu {
+				coords = CpuPick(board, currentPlayer.Sigil)
 				fmt.Printf("%v picked %v %v\n", currentPlayer.Name(), coords[0], coords[1])
 			} else {
 				fmt.Print(currentPlayer.Name() + "> ")
@@ -343,8 +343,8 @@ GAMELOOP:
 			}
 
 			if error == nil {
-				board.grid[coords[0]][coords[1]] = currentPlayer.sigil
-				board.turns += 1
+				board.Grid[coords[0]][coords[1]] = currentPlayer.Sigil
+				board.Turns += 1
 			} else if error.Error() == "exit" {
 				fmt.Printf("%v is a quitter, cya\n", currentPlayer.Name())
 				break GAMELOOP
@@ -355,11 +355,11 @@ GAMELOOP:
 
 			PrintBoard(board)
 
-			if EvalBoard(board, currentPlayer.sigil) {
+			if EvalBoard(board, currentPlayer.Sigil) {
 				wins++
 				PrintResult(currentPlayer.Name() + " wins!")
 				break
-			} else if board.turns >= MAX_TURNS {
+			} else if board.Turns >= MAX_TURNS {
 				draws++
 				PrintResult("cat's game")
 				break
