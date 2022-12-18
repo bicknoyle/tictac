@@ -53,3 +53,30 @@ func TestMissingCounts(t *testing.T) {
 		t.Fatalf("MissingCounts(), exepected 3 sets where 2 chars are missing")
 	}
 }
+
+func TestPlayerName(t *testing.T) {
+	player := Player{
+		id:    "1",
+		sigil: "X",
+	}
+
+	name := player.Name()
+	want := "Player 1"
+
+	if name != want {
+		t.Fatalf("Player.Name() = %v, want %v", name, want)
+	}
+
+	player = Player{
+		id:    "2",
+		sigil: "O",
+		cpu:   true,
+	}
+
+	name = player.Name()
+	want = "Player 2 (cpu)"
+
+	if name != want {
+		t.Fatalf("Player.Name() = %v, want %v", name, want)
+	}
+}

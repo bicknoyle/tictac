@@ -25,6 +25,16 @@ type Player struct {
 	cpu   bool
 }
 
+func (player *Player) Name() string {
+	name := "Player " + player.id
+
+	if player.cpu {
+		name += " (cpu)"
+	}
+
+	return name
+}
+
 // make a game board
 func MakeBoard(size int) *Board {
 	var board Board
@@ -311,7 +321,7 @@ GAMELOOP:
 	for {
 		board := MakeBoard(SIZE)
 
-		fmt.Printf("New game, Player %v goes first...\n", firstPlayer.id)
+		fmt.Printf("New game, %v goes first...\n", firstPlayer.Name())
 		PrintBoard(board)
 
 		for {
@@ -326,9 +336,9 @@ GAMELOOP:
 			var error error
 			if currentPlayer.cpu {
 				coords = CpuPick(board, currentPlayer.sigil)
-				fmt.Printf("Player %v picked %v %v\n", currentPlayer.id, coords[0], coords[1])
+				fmt.Printf("%v picked %v %v\n", currentPlayer.Name(), coords[0], coords[1])
 			} else {
-				fmt.Print("Player " + currentPlayer.id + "> ")
+				fmt.Print(currentPlayer.Name() + "> ")
 				coords, error = GetInput(reader, board)
 			}
 
@@ -336,7 +346,7 @@ GAMELOOP:
 				board.grid[coords[0]][coords[1]] = currentPlayer.sigil
 				board.turns += 1
 			} else if error.Error() == "exit" {
-				fmt.Println("Player " + currentPlayer.id + " is a quitter, cya")
+				fmt.Printf("%v is a quitter, cya\n", currentPlayer.Name())
 				break GAMELOOP
 			} else {
 				fmt.Println(error)
@@ -347,7 +357,7 @@ GAMELOOP:
 
 			if EvalBoard(board, currentPlayer.sigil) {
 				wins++
-				PrintResult("Player " + currentPlayer.id + " wins!")
+				PrintResult(currentPlayer.Name() + " wins!")
 				break
 			} else if board.turns >= MAX_TURNS {
 				draws++
