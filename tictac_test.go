@@ -5,7 +5,7 @@ import (
 )
 
 func TestMissingCounts(t *testing.T) {
-	board := MakeBoard(3)
+	board := MakeBoard()
 
 	want := len(board.Checks)
 	counts := MissingCounts(board, "O")
@@ -51,6 +51,17 @@ func TestMissingCounts(t *testing.T) {
 
 	if len(counts[2]) != 3 {
 		t.Fatalf("MissingCounts(), exepected 3 sets where 2 chars are missing")
+	}
+}
+
+func TestBoardString(t *testing.T) {
+	board := MakeBoard()
+
+	display := board.String()
+	want := "[_][_][_]\n[_][_][_]\n[_][_][_]\n"
+
+	if display != want {
+		t.Fatalf("Board.String() = \n%v\nwant = \n%v", display, want)
 	}
 }
 

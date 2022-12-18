@@ -19,6 +19,28 @@ type Board struct {
 	Checks [][][]int
 }
 
+// stringify the current board state
+func (board *Board) String() string {
+	result := ""
+
+	for _, row := range board.Grid {
+		result += "["
+		for i, c := range row {
+			if c == "" {
+				result += "_"
+			} else {
+				result += c
+			}
+			if i < len(board.Grid)-1 {
+				result += "]["
+			}
+		}
+		result += "]\n"
+	}
+
+	return result
+}
+
 type Player struct {
 	Id    string
 	Sigil string
@@ -36,8 +58,10 @@ func (player *Player) Name() string {
 }
 
 // make a game board
-func MakeBoard(size int) *Board {
+func MakeBoard() *Board {
 	var board Board
+
+	size := 3
 
 	board.Grid = make([][]string, size)
 	for row := 0; row < size; row++ {
@@ -87,24 +111,6 @@ func MakeCheckCoords(size int) [][][]int {
 	coords = append(coords, diag)
 
 	return coords
-}
-
-// Print out the game grid
-func PrintBoard(board *Board) {
-	for _, row := range board.Grid {
-		fmt.Print("[")
-		for i, c := range row {
-			if c == "" {
-				fmt.Print("_")
-			} else {
-				fmt.Print(c)
-			}
-			if i < len(board.Grid)-1 {
-				fmt.Print("][")
-			}
-		}
-		fmt.Println("]")
-	}
 }
 
 func PrintResult(message string) {
@@ -294,10 +300,6 @@ OUTER:
 }
 
 func main() {
-	// TODO: assume 3x3 grid
-	const SIZE = 3
-	const MAX_TURNS = SIZE * SIZE
-
 	rand.Seed(time.Now().UnixNano())
 	reader := bufio.NewReader(os.Stdin)
 
@@ -319,10 +321,11 @@ func main() {
 
 GAMELOOP:
 	for {
-		board := MakeBoard(SIZE)
+		board := MakeBoard()
+		MAX_TURNS := len(board.Grid) * len(board.Grid)
 
 		fmt.Printf("New game, %v goes first...\n", firstPlayer.Name())
-		PrintBoard(board)
+		fmt.Print(board)
 
 		for {
 			var currentPlayer Player
@@ -353,7 +356,7 @@ GAMELOOP:
 				continue
 			}
 
-			PrintBoard(board)
+			fmt.Print(board)
 
 			if EvalBoard(board, currentPlayer.Sigil) {
 				wins++
