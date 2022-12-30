@@ -131,16 +131,23 @@ func PrintResult(message string) {
 	fmt.Println("Result: " + message)
 }
 
-func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
-	text, _ := reader.ReadString('\n')
+func GetInput(r *bufio.Reader) (string, error) {
+	text, err := r.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
 	// trim newline
-	text = text[:len(text)-1]
+	return text[:len(text)-1], nil
+}
+
+func GetCoords(reader *bufio.Reader, board *Board) ([]int, error) {
+	text, _ := GetInput(reader)
 
 	if text == "exit" || text == "quit" {
 		return nil, errors.New("exit")
 	}
 
-	if match, _ := regexp.MatchString("^\\d+ \\d+", text); !match {
+	if match, _ := regexp.MatchString("^\\d+ \\d+$", text); !match {
 		return nil, errors.New("bad input")
 	}
 
@@ -157,6 +164,18 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 	}
 
 	return []int{row, col}, nil
+}
+
+func GetNumPlayers(r *bufio.Reader) (int, error) {
+	text, _ := GetInput(r)
+
+	if match, _ := regexp.MatchString("^[0-2]$", text); !match {
+		return 0, errors.New("bad input")
+	}
+
+	num, _ := strconv.Atoi(text)
+
+	return num, nil
 }
 
 func GetEmpty(board *Board) [][]int {
@@ -320,19 +339,16 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	var numHumanPlayers int
-	fmt.Print("How many human players [0-2]> ")
 	for {
-		text, _ := reader.ReadString('\n')
-		// trim newline
-		text = text[:len(text)-1]
+		fmt.Print("How many human players [0-2]> ")
+		n, err := GetNumPlayers(reader)
 
-		// TODO: compile regex
-		if match, _ := regexp.MatchString("^[0-2]$", text); match {
-			numHumanPlayers, _ = strconv.Atoi(text)
+		if err == nil {
+			numHumanPlayers = n
 			break
 		}
 
-		fmt.Print("bad input")
+		fmt.Println(err)
 	}
 
 	firstPlayer := Player{
@@ -381,7 +397,7 @@ GAMELOOP:
 				fmt.Printf("%v picked %v %v\n", currentPlayer.Name(), coords[0], coords[1])
 			} else {
 				fmt.Print(currentPlayer.Name() + "> ")
-				coords, error = GetInput(reader, board)
+				coords, error = GetCoords(reader, board)
 			}
 
 			if error == nil {
