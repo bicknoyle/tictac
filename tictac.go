@@ -15,17 +15,18 @@ import (
 
 type Board struct {
 	Grid   [][]string
+	Size   int
 	Turns  int
 	Checks [][][]int
 }
 
 func (board *Board) Set(row int, col int, sigil string) {
 	board.Grid[row][col] = sigil
+	board.Turns += 1
 }
 
 func (board *Board) Get(row int, col int) (string, error) {
-	size := len(board.Grid)
-	if row >= size || col >= size {
+	if row >= board.Size || col >= board.Size {
 		return "", errors.New("out of bounds")
 	}
 
@@ -44,7 +45,7 @@ func (board *Board) String() string {
 			} else {
 				result += c
 			}
-			if i < len(board.Grid)-1 {
+			if i < board.Size-1 {
 				result += "]["
 			}
 		}
@@ -74,14 +75,14 @@ func (player *Player) Name() string {
 func MakeBoard() *Board {
 	var board Board
 
-	size := 3
+	board.Size = 3
 
-	board.Grid = make([][]string, size)
-	for row := 0; row < size; row++ {
-		board.Grid[row] = make([]string, size)
+	board.Grid = make([][]string, board.Size)
+	for row := 0; row < board.Size; row++ {
+		board.Grid[row] = make([]string, board.Size)
 	}
 
-	board.Checks = MakeCheckCoords(size)
+	board.Checks = MakeCheckCoords(board.Size)
 
 	return &board
 }
@@ -160,9 +161,8 @@ func GetInput(reader *bufio.Reader, board *Board) ([]int, error) {
 
 func GetEmpty(board *Board) [][]int {
 	var empty [][]int
-	size := len(board.Grid)
-	for row := 0; row < size; row++ {
-		for col := 0; col < size; col++ {
+	for row := 0; row < board.Size; row++ {
+		for col := 0; col < board.Size; col++ {
 			sigil, _ := board.Get(row, col)
 			if sigil == "" {
 				empty = append(empty, []int{row, col})
@@ -176,7 +176,6 @@ func GetEmpty(board *Board) [][]int {
 // Pick play coordinates for the CPU player based on a variety of tactics
 func CpuPick(board *Board, sigil string) []int {
 	logger := log.New(os.Stderr, "Cpu Tactic: ", 0)
-	size := len(board.Grid)
 	var opSigil string
 	if sigil == "X" {
 		opSigil = "O"
@@ -187,7 +186,7 @@ func CpuPick(board *Board, sigil string) []int {
 	// Tactic 0: Take a random corner
 	if board.Turns == 0 {
 		logger.Println("random corner")
-		starts := [][]int{{0, 0}, {0, size - 1}, {size - 1, 0}, {size - 1, size - 1}, {size / 2, size / 2}}
+		starts := [][]int{{0, 0}, {0, board.Size - 1}, {board.Size - 1, 0}, {board.Size - 1, board.Size - 1}, {board.Size / 2, board.Size / 2}}
 		coords := starts[rand.Intn(len(starts)-1)]
 
 		return []int{coords[0], coords[1]}
@@ -195,19 +194,22 @@ func CpuPick(board *Board, sigil string) []int {
 
 	// Tactic 1: Take a corner on first move if player didn't, else take center
 	if board.Turns == 1 {
-		// TODO: use Get or make a GetAll func
-		if board.Grid[0][0] == "" && board.Grid[0][size-1] == "" &&
-			board.Grid[size-1][0] == "" && board.Grid[size-1][size-1] == "" {
+		nw, _ := board.Get(0, 0)
+		ne, _ := board.Get(0, board.Size-1)
+		sw, _ := board.Get(board.Size-1, 0)
+		se, _ := board.Get(board.Size-1, board.Size-1)
+		if nw == "" && ne == "" && sw == "" && se == "" {
 			logger.Println("take corner")
 			// pick a corner neighboring opp's play. This only works on a 3x3 board
-			// TODO: use Get
-			if board.Grid[0][1] != "" || board.Grid[1][0] != "" {
+			neighborA, _ := board.Get(0, 1)
+			neighborB, _ := board.Get(1, 0)
+			if neighborA != "" || neighborB != "" {
 				return []int{0, 0}
 			}
-			return []int{size - 1, size - 1}
+			return []int{board.Size - 1, board.Size - 1}
 		} else {
 			logger.Println("take center")
-			center := size / 2
+			center := board.Size / 2
 			return []int{center, center}
 		}
 	}
@@ -270,8 +272,6 @@ func RandomPair(lanes [][][]int) (int, int) {
 }
 
 func EvalBoard(board *Board, sigil string) bool {
-	need := len(board.Grid)
-
 	for _, set := range board.Checks {
 		found := 0
 		for _, pair := range set {
@@ -284,7 +284,7 @@ func EvalBoard(board *Board, sigil string) bool {
 				break
 			}
 		}
-		if found == need {
+		if found == board.Size {
 			return true
 		}
 	}
@@ -293,8 +293,7 @@ func EvalBoard(board *Board, sigil string) bool {
 }
 
 func MissingCounts(board *Board, sigil string) [][][][]int {
-	size := len(board.Grid)
-	counts := make([][][][]int, size+1)
+	counts := make([][][][]int, board.Size+1)
 OUTER:
 	for _, set := range board.Checks {
 		var empties [][]int
@@ -339,7 +338,7 @@ func main() {
 GAMELOOP:
 	for {
 		board := MakeBoard()
-		MAX_TURNS := len(board.Grid) * len(board.Grid)
+		MAX_TURNS := board.Size * board.Size
 
 		fmt.Printf("New game, %v goes first...\n", firstPlayer.Name())
 		fmt.Print(board)
@@ -364,7 +363,6 @@ GAMELOOP:
 
 			if error == nil {
 				board.Set(coords[0], coords[1], currentPlayer.Sigil)
-				board.Turns += 1
 			} else if error.Error() == "exit" {
 				fmt.Printf("%v is a quitter, cya\n", currentPlayer.Name())
 				break GAMELOOP
