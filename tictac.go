@@ -319,16 +319,39 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	reader := bufio.NewReader(os.Stdin)
 
+	var numHumanPlayers int
+	fmt.Print("How many human players [0-2]> ")
+	for {
+		text, _ := reader.ReadString('\n')
+		// trim newline
+		text = text[:len(text)-1]
+
+		// TODO: compile regex
+		if match, _ := regexp.MatchString("^[0-2]$", text); match {
+			numHumanPlayers, _ = strconv.Atoi(text)
+			break
+		}
+
+		fmt.Print("bad input")
+	}
+
 	firstPlayer := Player{
 		Id:    "1",
 		Sigil: "X",
-		Cpu:   false, // TODO: make configurable
+		Cpu:   true,
 	}
 
 	secondPlayer := Player{
 		Id:    "2",
 		Sigil: "O",
 		Cpu:   true,
+	}
+
+	if numHumanPlayers > 0 {
+		firstPlayer.Cpu = false
+	}
+	if numHumanPlayers > 1 {
+		secondPlayer.Cpu = false
 	}
 
 	// TODO: associate with a player
