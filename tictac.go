@@ -155,10 +155,10 @@ func GetCoords(reader *bufio.Reader, board *Board) ([]int, error) {
 	row, _ := strconv.Atoi(coords[0])
 	col, _ := strconv.Atoi(coords[1])
 
-	sigil, error := board.Get(row, col)
+	sigil, err := board.Get(row, col)
 
-	if error != nil {
-		return nil, error
+	if err != nil {
+		return nil, err
 	} else if sigil != "" {
 		return nil, errors.New("coord taken")
 	}
@@ -391,22 +391,22 @@ GAMELOOP:
 			}
 
 			var coords []int
-			var error error
+			var err error
 			if currentPlayer.Cpu {
 				coords = CpuPick(board, currentPlayer.Sigil)
 				fmt.Printf("%v picked %v %v\n", currentPlayer.Name(), coords[0], coords[1])
 			} else {
 				fmt.Print(currentPlayer.Name() + "> ")
-				coords, error = GetCoords(reader, board)
+				coords, err = GetCoords(reader, board)
 			}
 
-			if error == nil {
+			if err == nil {
 				board.Set(coords[0], coords[1], currentPlayer.Sigil)
-			} else if error.Error() == "exit" {
+			} else if err.Error() == "exit" {
 				fmt.Printf("%v is a quitter, cya\n", currentPlayer.Name())
 				break GAMELOOP
 			} else {
-				fmt.Println(error)
+				fmt.Println(err)
 				continue
 			}
 
