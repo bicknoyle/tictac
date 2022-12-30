@@ -1,3 +1,3 @@
-module bicknoyle/games
+module bicknoyle/tictac
 
 go 1.18
